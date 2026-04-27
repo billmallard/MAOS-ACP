@@ -83,6 +83,14 @@ Key architectural decisions worth adopting:
 
 The SimHID protocol is a lightweight line-oriented serial format. MAOS-ACP will adopt a similar approach: named events over USB serial, host-side Python client translates to FIX writes.
 
+### Why this matters: the Redbird problem
+
+Professional AATD/FTD simulators (Redbird, Frasca, and others) charging $150–300/hr of sim time typically exhibit noticeably poor rotary knob feel — frequency digits skip, headings under-shoot on fast turns, COM tuning requires deliberate slow rotation to get reliable counts. This is a firmware architecture failure, not a hardware limitation.
+
+The root cause is USB HID's 125 Hz polling rate (8ms interval) combined with naive firmware that reports only ±1 per poll cycle. A brisk turn on a 24-detent encoder generates 8–10 pulses in under 100ms. If intermediate pulses are not buffered between polls, they are silently dropped. The user feels detents that the software never registers.
+
+The real Garmin G1000 reads encoder state on an internal bus at kilohertz rates — the USB boundary simply doesn't exist in the hardware. A homebuilt panel using the SimHID buffering approach (accumulate pulse count in interrupt context, send full delta each poll) will have measurably better knob feel than the professional sim hardware, at a fraction of the cost. MAOS-ACP's firmware will implement this correctly from the start.
+
 ---
 
 ## Software Architecture
