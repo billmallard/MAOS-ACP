@@ -44,6 +44,47 @@ Encoder push-button toggles between coarse and fine steps:
 
 ---
 
+## Parts and Sourcing
+
+### Encoders and Electronics
+
+| Item | Source | Part / SKU | Price | Notes |
+|------|--------|-----------|-------|-------|
+| Rotary encoder (single) | Digi-Key / Mouser | Bourns PEC11R-4215F-S0024 | ~$6 | 24-detent, push-button, panel-mount |
+| Dual encoder bundle (GA-style) | [MobiFlight Shop](https://shop.mobiflight.com/product/dual-encoder-bundle/) | Dual Encoder Bundle | €6.90–€22.50 | Garmin-style black knobs, JST-XH connectors, 20×20mm PCB — ready to solder |
+| Encoder knobs (2-pack) | [Desktop Aviator](https://desktopaviator.com/Products/parts.htm) | EC11EBB24C03 | $3.95/2 | Direct-fit for common encoders |
+| Push button with LED | Desktop Aviator | LA16 series (green LED) | $2.95 | Illuminated momentary, panel-mount |
+| Mini toggle switch | Desktop Aviator | SPDT mini | $1.95 | Mode selects, AP arm |
+| Connectors (3-pin) | Desktop Aviator | Female 3-pin set | $3.15/10 | Wiring harness |
+| Microcontroller | Various | STM32F103 "Blue Pill" | ~$3 | USB serial, 7 timers for encoder IRQs |
+
+The MobiFlight dual encoder bundle is the fastest path to a functional encoder assembly — it ships with Garmin-style knobs, a small PCB, and pre-crimped JST-XH connectors. Desktop Aviator is useful for individual switches and illuminated buttons to complete the mode annunciator row.
+
+### 3D-Printed Knobs and Panel Parts
+
+Garmin-style knobs (G1000, GFC 500) are widely modeled for 3D printing and fit standard 6mm D-shaft encoders:
+
+- **Yeggi G1000 knob search** — [yeggi.com/q/g1000+knob](https://www.yeggi.com/q/g1000+knob/) — aggregates designs from Thingiverse, Printables, and Cults. Notable models: "G1000 Knobs and Dual Rotary Encoder" by FlightSimMaker, "Dual Rotary Encoder Base Knob" by rodzoz.
+- **GFC 500 autopilot panel** — [Thingiverse thing:4640243](https://www.thingiverse.com/thing:4640243) — complete CAD files for a GFC 500-style autopilot controller including panel bezel, knob caps, and button surrounds. Directly applicable to MAOS-ACP panel layout.
+
+PETG or ASA is recommended over PLA for cockpit use (heat resistance).
+
+---
+
+## Reference Implementation — SimHID G1000
+
+[opiopan/simhid-g1000](https://github.com/opiopan/simhid-g1000) is a complete open-source G1000 panel controller with 14 rotary encoder axes and 47 buttons, MIT licensed. It is the closest existing reference to what MAOS-ACP is building.
+
+Key architectural decisions worth adopting:
+
+- **Custom USB serial protocol (SimHID) instead of USB HID.** Standard HID has no mechanism to name inputs — every button is just a number. SimHID assigns descriptive names to each control element, making the host-side mapping code readable and configurable. It also handles multiple encoder pulses that arrive between USB poll intervals without losing counts — a real problem with fast knob turns over HID.
+- **STM32 firmware** built with the Arm GNU bare-metal toolchain.
+- **Companion host software (fsmapper)** that interprets the SimHID stream and maps events to simulator actions. The equivalent for MAOS-ACP is the FIX network client.
+
+The SimHID protocol is a lightweight line-oriented serial format. MAOS-ACP will adopt a similar approach: named events over USB serial, host-side Python client translates to FIX writes.
+
+---
+
 ## Software Architecture
 
 ```
